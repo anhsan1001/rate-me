@@ -1,7 +1,7 @@
 // In App.js in a new project
 
 import * as React from 'react';
-import { View, Text, Button, TextInput } from 'react-native';
+import { View, Text, Button, TextInput, Image, StyleSheet } from 'react-native';
 import {
   NavigationContainer,
   NavigationProp,
@@ -11,12 +11,17 @@ import {
   createNativeStackNavigator,
   NativeStackNavigationProp,
 } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import ImageViewer from './components/ImageViewer';
+import CustomButton from './components/CustomButton';
+import * as ImagePicker from 'expo-image-picker';
 export type RootStackParamList = {
   home: any;
   detail?: { itemId?: number; otherParam?: string }; // hoặc có thể có params như { id: string }
   create_post?: any;
 };
 
+const PlaceholderImage = require('./assets/icon.png');
 function CreatePostScreen({ route }: any) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -43,34 +48,37 @@ function CreatePostScreen({ route }: any) {
 }
 
 function HomeScreen({ route }: any) {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  React.useEffect(() => {
-    if (route.params?.post) {
-      // Post updated, do something with `route.params.post`
-      // For example, send the post to the server
-      alert('New post: ' + route.params?.post);
-    }
-  }, [route.params?.post]);
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Home Screen</Text>
-      <Button
-        onPress={() =>
-          navigation.navigate('detail', {
-            itemId: 86,
-            otherParam: 'anything you want here',
-          })
-        }
-        title="Go to Details"
-      />
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Button
-          onPress={() => navigation.navigate('create_post')}
-          title=" Create post"
-        />
+  const [selectedImage, setSelectedImage] = React.useState<string | undefined>(
+    undefined
+  );
+  const pickImageAsync = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 1,
+    });
 
-        <Text style={{ margin: 10 }}>Post: {route.params?.post}</Text>
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
+    } else {
+      alert('You did not select any image.');
+    }
+  };
+  return (
+    <View style={styles.container}>
+      <View style={styles.imageContainer}>
+        <ImageViewer
+          imgSource={PlaceholderImage}
+          selectedImage={selectedImage}
+        />
+        <View style={styles.footerContainer}>
+          <CustomButton
+            label="Choose a photo"
+            theme="primary"
+            onPress={pickImageAsync}
+          />
+          <CustomButton label="Use this photo" />
+        </View>
       </View>
     </View>
   );
@@ -109,24 +117,82 @@ function DetailsScreen({ route }: any) {
 }
 
 const Stack = createNativeStackNavigator();
+function LogoTitle() {
+  return (
+    <Image
+      style={{ width: 50, height: 50 }}
+      source={require('./assets/favicon.png')}
+    />
+  );
+}
+function ProfileScreen() {
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <Text>Profile Screen</Text>
+    </View>
+  );
+}
+
+function FeedScreen() {
+  const navigation = useNavigation();
+
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <Text>Feed Screen</Text>
+      <Button
+        onPress={() => navigation.navigate('Profile')}
+        title=" Go to Profile"
+      />
+    </View>
+  );
+}
+
+function MessagesScreen() {
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <Text>Messages Screen</Text>
+    </View>
+  );
+}
+const Tab = createBottomTabNavigator();
+function HomeTabs() {
+  return (
+    <Tab.Navigator>
+      <Tab.Screen name="Feed" component={FeedScreen} />
+      <Tab.Screen name="Messages" component={MessagesScreen} />
+    </Tab.Navigator>
+  );
+}
 
 function RootStack() {
   return (
     <Stack.Navigator
       initialRouteName="home"
       screenOptions={{
-        headerStyle: { backgroundColor: 'tomato' },
+        headerStyle: {
+          backgroundColor: '#f4511e',
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
       }}
     >
       <Stack.Screen
         name="home"
         component={HomeScreen}
-        options={{ title: 'Overview' }}
+        options={{
+          title: 'Home',
+          headerShown: false,
+        }}
       />
       <Stack.Screen
         name="detail"
         component={DetailsScreen}
-        options={{ title: 'Detail' }}
+        options={{
+          headerBackTitle: 'Custom Back',
+          headerBackTitleStyle: { fontSize: 30 },
+        }}
         initialParams={{ otherParam: 'texxt' }}
       />
       <Stack.Screen
@@ -145,3 +211,24 @@ export default function App() {
     </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#25292e',
+    alignItems: 'center',
+  },
+  imageContainer: {
+    flex: 1,
+  },
+  image: {
+    width: 320,
+    height: 440,
+    borderRadius: 18,
+    backgroundColor: '#999',
+  },
+  footerContainer: {
+    flex: 1 / 3,
+    alignItems: 'center',
+  },
+});
