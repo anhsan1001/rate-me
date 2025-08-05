@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "ABCDE12345.com.yourcompany.yourapp"
+        ],
+        "components": [
+          {
+            "/": "/products/*",
+            "comment": "Matches any URL starting with /products/"
+          },
+          {
+            "/": "/profile",
+            "comment": "Matches the specific /profile URL"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,7 +1,16 @@
 // In App.js in a new project
-
+import * as Notifications from 'expo-notifications';
 import * as React from 'react';
-import { View, Text, Button, TextInput, Image, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  Button,
+  TextInput,
+  Image,
+  StyleSheet,
+  Platform,
+} from 'react-native';
+import * as Linking from 'expo-linking';
 import {
   NavigationContainer,
   NavigationProp,
@@ -15,6 +24,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import ImageViewer from './components/ImageViewer';
 import CustomButton from './components/CustomButton';
 import * as ImagePicker from 'expo-image-picker';
+import HomeScreen from './screens/HomeScreen';
+import DetailsScreen from './screens/DetailsScreen';
 export type RootStackParamList = {
   home: any;
   detail?: { itemId?: number; otherParam?: string }; // hoặc có thể có params như { id: string }
@@ -47,91 +58,7 @@ function CreatePostScreen({ route }: any) {
   );
 }
 
-function HomeScreen({ route }: any) {
-  const [selectedImage, setSelectedImage] = React.useState<string | undefined>(
-    undefined
-  );
-  const pickImageAsync = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
-    } else {
-      alert('You did not select any image.');
-    }
-  };
-  return (
-    <View style={styles.container}>
-      <View style={styles.imageContainer}>
-        <ImageViewer
-          imgSource={PlaceholderImage}
-          selectedImage={selectedImage}
-        />
-        <View style={styles.footerContainer}>
-          <CustomButton
-            label="Choose a photo"
-            theme="primary"
-            onPress={pickImageAsync}
-          />
-          <CustomButton label="Use this photo" />
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function DetailsScreen({ route }: any) {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { itemId, otherParam } = route.params;
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text> Detail</Text>
-      <Text>itemId: {JSON.stringify(itemId)}</Text>
-      <Text>otherParam: {JSON.stringify(otherParam)}</Text>
-      <Button
-        onPress={() =>
-          navigation.push('detail', {
-            itemId: Math.floor(Math.random() * 100),
-          })
-        }
-        title="Go to Details"
-      />
-      <Button
-        onPress={() =>
-          navigation.setParams({
-            itemId: Math.floor(Math.random() * 100),
-            otherParam: 'updated',
-          })
-        }
-        title="Updated"
-      />
-      <Button onPress={() => navigation.goBack()} title="Go Back" />
-      <Button onPress={() => navigation.popToTop()} title="Go Home" />
-    </View>
-  );
-}
-
 const Stack = createNativeStackNavigator();
-function LogoTitle() {
-  return (
-    <Image
-      style={{ width: 50, height: 50 }}
-      source={require('./assets/favicon.png')}
-    />
-  );
-}
-function ProfileScreen() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Profile Screen</Text>
-    </View>
-  );
-}
 
 function FeedScreen() {
   const navigation = useNavigation();
@@ -140,7 +67,7 @@ function FeedScreen() {
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <Text>Feed Screen</Text>
       <Button
-        onPress={() => navigation.navigate('Profile')}
+        // onPress={() => navigation.navigate('Profile')}
         title=" Go to Profile"
       />
     </View>
@@ -187,7 +114,7 @@ function RootStack() {
         }}
       />
       <Stack.Screen
-        name="detail"
+        name="details"
         component={DetailsScreen}
         options={{
           headerBackTitle: 'Custom Back',
@@ -203,10 +130,60 @@ function RootStack() {
     </Stack.Navigator>
   );
 }
+const config = {
+  screens: {
+    home: 'home',
+    details: 'details',
+    NotFound: '*',
+  },
+};
+const prefix = Linking.createURL('myapp://');
+const linking = {
+  prefixes: [prefix, 'https://anhsan1001.github.io/anh-san.github.io'],
+  config,
+  // async getInitialURL() {
+  //   const url = await Linking.getInitialURL();
+  //   if (url != null) {
+  //     console.log('App launched from deep link (getInitialURL):', url);
+  //   }
+  //   return url;
+  // },
+  // subscribe(listener) {
+  //   const onReceiveURL = ({ url }) => {
+  //     console.log('Deep link received (subscribe):', url);
+  //     listener(url);
+  //   };
+
+  //   const subscription = Linking.addEventListener('url', onReceiveURL);
+  //   return () => {
+  //     subscription.remove();
+  //   };
+  // },
+};
 
 export default function App() {
+  React.useEffect(() => {
+    registerForPushNotificationsAsync();
+  }, []);
+
+  async function registerForPushNotificationsAsync() {
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Permission not granted');
+      return;
+    }
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    console.log('Expo Token:', token);
+
+    if (Platform.OS === 'android') {
+      Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+      });
+    }
+  }
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking} fallback={<Text>Loading...</Text>}>
       <RootStack />
     </NavigationContainer>
   );

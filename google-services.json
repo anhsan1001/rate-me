@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "109637962827",
+    "project_id": "push-noti-638a5",
+    "storage_bucket": "push-noti-638a5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:109637962827:android:d757c1b2ce997ad1c511ce",
+        "android_client_info": {
+          "package_name": "anhsan.com"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDeeB9E65clhPF93CopZ4AYSZCp8ohpKus"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
