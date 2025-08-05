@@ -1,5 +1,5 @@
 // In App.js in a new project
-import * as Notifications from 'expo-notifications';
+// import * as Notifications from 'expo-notifications';
 import * as React from 'react';
 import {
   View,
@@ -15,6 +15,7 @@ import {
   NavigationContainer,
   NavigationProp,
   useNavigation,
+  useNavigationContainerRef,
 } from '@react-navigation/native';
 import {
   createNativeStackNavigator,
@@ -26,6 +27,21 @@ import CustomButton from './components/CustomButton';
 import * as ImagePicker from 'expo-image-picker';
 import HomeScreen from './screens/HomeScreen';
 import DetailsScreen from './screens/DetailsScreen';
+import {
+  listenForNotificationLinks,
+  requestUserPermission,
+} from './firebase/FCMService';
+import messaging from '@react-native-firebase/messaging';
+import * as Notifications from 'expo-notifications';
+Notifications.setNotificationHandler({
+  handleNotification: async () =>
+    ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }) as any,
+});
+
 export type RootStackParamList = {
   home: any;
   detail?: { itemId?: number; otherParam?: string }; // hoặc có thể có params như { id: string }
@@ -47,13 +63,13 @@ function CreatePostScreen({ route }: any) {
         value={postText}
         onChangeText={setPostText}
       />
-      <Button
+      {/* <Button
         onPress={() => {
           // Pass params back to home screen
           navigation.popTo('home', { post: postText });
         }}
         title="Done"
-      />
+      /> */}
     </>
   );
 }
@@ -92,6 +108,29 @@ function HomeTabs() {
 }
 
 function RootStack() {
+  const navigate = useNavigation();
+
+  const handleNotification = (remoteMessage) => {
+    const { screen } = remoteMessage.data;
+
+    if (screen) {
+      Linking.openURL(`myapp://${screen}`);
+    }
+  };
+  React.useEffect(() => {
+    messaging()
+      .getInitialNotification()
+      .then((remoteMessage) => {
+        handleNotification(remoteMessage);
+      });
+
+    const unsubscribe = messaging().onNotificationOpenedApp((remoteMessage) => {
+      handleNotification(remoteMessage);
+    });
+
+    return unsubscribe;
+  }, []);
+
   return (
     <Stack.Navigator
       initialRouteName="home"
@@ -137,12 +176,14 @@ const config = {
     NotFound: '*',
   },
 };
-const prefix = Linking.createURL('myapp://');
+const prefix = Linking.createURL('/');
 const linking = {
-  prefixes: [prefix, 'https://anhsan1001.github.io/anh-san.github.io'],
+  prefixes: [prefix, 'myapp://'],
   config,
   // async getInitialURL() {
   //   const url = await Linking.getInitialURL();
+  //   console.log('App launched from deep link (getInitialURL):', url);
+
   //   if (url != null) {
   //     console.log('App launched from deep link (getInitialURL):', url);
   //   }
@@ -162,28 +203,35 @@ const linking = {
 };
 
 export default function App() {
+  const navigationRef = useNavigationContainerRef();
+
   React.useEffect(() => {
-    registerForPushNotificationsAsync();
+    requestUserPermission();
+    const unsubscribe = messaging().onMessage(async (remoteMessage) => {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: remoteMessage.notification?.title,
+          body: remoteMessage.notification?.body,
+        },
+        trigger: null,
+      });
+    });
+
+    return unsubscribe;
   }, []);
 
-  async function registerForPushNotificationsAsync() {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== 'granted') {
-      alert('Permission not granted');
-      return;
-    }
-    const token = (await Notifications.getExpoPushTokenAsync()).data;
-    console.log('Expo Token:', token);
+  React.useEffect(() => {
+    listenForNotificationLinks((deeplink) => {
+      Linking.openURL(deeplink);
+    });
+  }, []);
 
-    if (Platform.OS === 'android') {
-      Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
-        importance: Notifications.AndroidImportance.MAX,
-      });
-    }
-  }
   return (
-    <NavigationContainer linking={linking} fallback={<Text>Loading...</Text>}>
+    <NavigationContainer
+      linking={linking}
+      fallback={<Text>Loading...</Text>}
+      ref={navigationRef}
+    >
       <RootStack />
     </NavigationContainer>
   );
